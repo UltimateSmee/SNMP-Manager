@@ -1,0 +1,12 @@
+[
+  {
+    "ip": "add",
+    "community": "localhost",
+    "oid": "public"
+  },
+  {
+    "ip": "localhost",
+    "community": "public",
+    "oid": "public"
+  }
+]
