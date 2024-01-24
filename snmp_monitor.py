@@ -6,6 +6,28 @@ import sqlite3
 import sys
 from pysnmp.hlapi import *
 
+def query_database():
+	# Connect to the database and create cursor
+	conn = sqlite3.connect('network_monitor.db')
+	cursor = conn.cursor()
+
+	# Execute SELECT * with cursor to select all data in snmp_data
+	cursor.execute('SELECT * FROM snmp_data')
+
+	# Fetch all rows from cursor selection
+	rows = cursor.fetchall()
+
+	# Print header row
+	print("{0:>5} {1:<20} {2:<15} {3:<20} {4:<15} {5:<15}".format("ID", "Timestamp", "IP Address", "Community", "OID", "Value"))
+	print("="*90)
+
+	# Print each row of data
+	for row in rows:
+		print("{0:>5} {1:<20} {2:<15} {3:<20} {4:<15} {5:<15}".format(*row))
+
+	# Close out the connection
+	conn.close()
+
 
 def get_snmp_data(ip, community, oid):
 
@@ -58,13 +80,8 @@ def get_snmp_data(ip, community, oid):
 		t = str(e).rfind('[Errno')
 		if t != -1:
 			e = str(e)[t:]
-		print(f"""
-	#
-	Error during SNMP query: 
-	Device: {ip}
-	Error: {str(e)}
-	#
-			""")
+		
+		print(f"\n	Error during SNMP query: \n	Device: {ip} \n	Error: {str(e)}\n")
 
 # Commit Changes and close connection
 
@@ -117,7 +134,6 @@ def add_device(ip, community, oids=[]):
 	print(f"Device with IP {ip} added successfully.")
 
 
-
 def job():
 # ADD ABILITY TO RUN SELECTED DEVICES. CHECK FOR DEVICE, IF NOT FOUND, ASK IF WANT TO ADD THEN RUN FOR THAT DEVICE
 # ADD RUN ALL VS RUN ONE
@@ -143,19 +159,26 @@ def job():
 schedule.every(5).seconds.do(job)
 	
 
-
 if __name__ == "__main__":
-	if "run" in sys.argv:
-		job()
+	# Store length of command line variables to be checked later
+	l = len(sys.argv)
+
+	# Determine which funtion to run based on command line arguments
+	if l == 2:
+		if "run" in sys.argv:
+			job()
+			
+		elif "query" in sys.argv:
+			query_database()
+
+		elif "add" in sys.argv:
+			ip, community = sys.argv[2], sys.argv[3]
+			oids=[]
+			for o in range(len(sys.argv)-4):
+				oids.append(sys.argv[4+o])
+			add_device(ip, community, oids)
 		
-	elif "add" in sys.argv:
-		ip, community = sys.argv[2], sys.argv[3]
-		oids=[]
-		for o in range(len(sys.argv)-4):
-			oids.append(sys.argv[4+o])
-		add_device(ip, community, oids)
-	
-	elif len(sys.argv) == 4:
+	elif l == 4:
 		ip, community, oid = sys.argv[1], sys.argv[2], sys.argv[3]
 		get_snmp_data(ip, community, oid)
 
